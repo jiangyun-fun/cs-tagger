@@ -223,7 +223,7 @@ fn process_bam(
 ///
 /// Position advancement rules:
 /// - `:N` / `=seq` → advance pos, removed from output
-/// - `*xy`          → output `pos*xy`, DON'T advance
+/// - `*xy`          → output `pos*xy`, advance by 1
 /// - `+seq`         → output `pos+seq`, DON'T advance
 /// - `-seq`         → output `pos-seq`, advance by seq.len()
 /// - `~aa<N>gt`     → output `pos~...`, advance by N
@@ -258,7 +258,7 @@ fn cs_to_absolute(cs_tag: &str, pos: i64) -> Result<String, Box<dyn std::error::
                 abs_pos += (i - start) as u64;
             }
             b'*' => {
-                // Substitution: *xy — don't advance
+                // Substitution: *xy — advance by 1 (consumes 1 ref base)
                 i += 1;
                 if i + 2 > bytes.len() {
                     return Err(format!("malformed *xy at byte {} in CS tag", i - 1).into());
@@ -268,6 +268,7 @@ fn cs_to_absolute(cs_tag: &str, pos: i64) -> Result<String, Box<dyn std::error::
                 let query_base = bytes[i] as char;
                 i += 1;
                 write!(result, "{abs_pos}*{ref_base}{query_base}")?;
+                abs_pos += 1;
             }
             b'+' => {
                 // Insertion: +seq — don't advance
@@ -505,25 +506,32 @@ mod tests {
     #[test]
     fn cs_to_absolute_short_identical_advances_pos() {
         let result = cs_to_absolute(":5*ac", 10).unwrap();
-        assert_eq!(result, "16*ac"); // 11 + 5 = 16
+        assert_eq!(result, "16*ac"); // 11 + 5 = 16, * at 16
     }
 
     #[test]
     fn cs_to_absolute_long_identical_advances_pos() {
         let result = cs_to_absolute("=ACGT*ac", 10).unwrap();
-        assert_eq!(result, "15*ac"); // 11 + 4 = 15
+        assert_eq!(result, "15*ac"); // 11 + 4 = 15, * at 15
     }
 
     #[test]
     fn cs_to_absolute_mixed_operations() {
         // :10 → advance to 110, no output
-        // +ac → "110+ac", no advance
+        // +ac → "110+ac", no advance (insertion doesn't consume ref)
         // -tgca → "110-tgca", advance by 4 to 114
         // :5 → advance to 119, no output
-        // *gt → "119*gt", no advance
-        // ~gt200ag → "119~gt200ag", advance by 200
+        // *gt → "119*gt", advance by 1 to 120
+        // ~gt200ag → "120~gt200ag", advance by 200
         let result = cs_to_absolute(":10+ac-tgca:5*gt~gt200ag", 99).unwrap();
-        assert_eq!(result, "110+ac110-tgca119*gt119~gt200ag");
+        assert_eq!(result, "110+ac110-tgca119*gt120~gt200ag");
+    }
+
+    #[test]
+    fn cs_to_absolute_consecutive_substitutions() {
+        // Each *xy consumes 1 ref base → positions must increment
+        let result = cs_to_absolute("*ac*tc*ag", 52).unwrap();
+        assert_eq!(result, "53*ac54*tc55*ag");
     }
 
     #[test]
