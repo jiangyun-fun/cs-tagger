@@ -34,7 +34,7 @@ impl fmt::Display for CsOp {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let matches = Command::new("cs_tag_generator")
+    let matches = Command::new("cs-tag")
         .version("1.0")
         .about("Generate minimap2-like CS tags for BAM files")
         .arg(
