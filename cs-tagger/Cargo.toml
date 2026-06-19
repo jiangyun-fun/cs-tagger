@@ -1,6 +1,6 @@
 [package]
-name = "cs-tag"
-version = "0.2.1"
+name = "cs-tagger"
+version = "0.3.0"
 edition = "2021"
 
 [dependencies]

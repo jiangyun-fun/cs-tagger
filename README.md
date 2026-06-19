@@ -1,4 +1,4 @@
-# cs-tag
+# cs-tagger
 
 Generate [minimap2](https://github.com/lh3/minimap2)-like CS tags for BAM files.
 
@@ -9,23 +9,23 @@ CS tags encode the alignment between query and reference sequences in a compact 
 ### From source
 
 ```bash
-git clone https://github.com/jiangyun-fun/cs-tag.git
-cd cs-tag/cs-tag
+git clone https://github.com/jiangyun-fun/cs-tagger.git
+cd cs-tagger/cs-tagger
 cargo build --release
 ```
 
-The binary is at `target/release/cs-tag`.
+The binary is at `target/release/cs-tagger`.
 
 ## Usage
 
 ```bash
-cs-tag -i input.bam -o output.bam reference.fa
+cs-tagger -i input.bam -o output.bam reference.fa
 ```
 
 ### Options
 
 ```
-Usage: cs-tag [OPTIONS] --input-bam <FILE> --output-bam <FILE> <FASTA>
+Usage: cs-tagger [OPTIONS] --input-bam <FILE> --output-bam <FILE> <FASTA>
 
 Arguments:
   <FASTA>              Reference FASTA file
@@ -44,25 +44,25 @@ Options:
 **Basic usage** — add CS tags with default tag name `cs`:
 
 ```bash
-cs-tag -i aligned.bam -o tagged.bam reference.fa
+cs-tagger -i aligned.bam -o tagged.bam reference.fa
 ```
 
 **Custom tag name** — write to the `CS` tag instead:
 
 ```bash
-cs-tag -i aligned.bam -o tagged.bam --add-cs CS reference.fa
+cs-tagger -i aligned.bam -o tagged.bam --add-cs CS reference.fa
 ```
 
 **Absolute positions** — anchor each operation to its 1-based reference position:
 
 ```bash
-cs-tag -i aligned.bam -o tagged.bam --absolute reference.fa
+cs-tagger -i aligned.bam -o tagged.bam --absolute reference.fa
 ```
 
 **Pipe mode** — read from stdin, write to stdout:
 
 ```bash
-samtools view -b input.bam | cs-tag -i - -o - reference.fa | samtools sort -o sorted.bam
+samtools view -b input.bam | cs-tagger -i - -o - reference.fa | samtools sort -o sorted.bam
 ```
 
 ## CS Tag Format
