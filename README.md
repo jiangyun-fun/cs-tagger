@@ -6,6 +6,24 @@ CS tags encode the alignment between query and reference sequences in a compact 
 
 ## Installation
 
+### Bioconda
+
+```bash
+conda install -c conda-forge -c bioconda cs-tagger
+mamba install -c conda-forge -c bioconda cs-tagger   # faster solver
+pixi global install cs-tagger                         # pixi
+```
+
+### Cargo
+
+```bash
+cargo install cs-tagger
+```
+
+> Building from source compiles libhts (via `hts-sys`/cmake), so this needs a C/C++
+> toolchain, `cmake`, and libcurl/openssl dev headers. Prefer the Bioconda build if you
+> don't have those.
+
 ### From source
 
 ```bash
