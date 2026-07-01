@@ -10,7 +10,7 @@ CS tags encode the alignment between query and reference sequences in a compact 
 
 ```bash
 git clone https://github.com/jiangyun-fun/cs-tagger.git
-cd cs-tagger/cs-tagger
+cd cs-tagger
 cargo build --release
 ```
 

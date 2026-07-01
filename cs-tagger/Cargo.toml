@@ -2,6 +2,14 @@
 name = "cs-tagger"
 version = "0.3.0"
 edition = "2021"
+description = "Generate minimap2-like CS tags for BAM files from an existing alignment and a reference FASTA"
+license = "MIT"
+repository = "https://github.com/jiangyun-fun/cs-tagger"
+homepage = "https://github.com/jiangyun-fun/cs-tagger"
+readme = "README.md"
+authors = ["Yun Jiang"]
+keywords = ["bam", "bioinformatics", "cs-tag", "sam", "genomics"]
+categories = ["science", "command-line-utilities"]
 
 [dependencies]
 clap = { version = "4.6.1" }
