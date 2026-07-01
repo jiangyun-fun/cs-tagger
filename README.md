@@ -42,6 +42,9 @@ Prebuilt images auto-built from the Bioconda package (no Rust/C toolchain needed
 # Docker
 docker run --rm -v "$PWD:$PWD" -w "$PWD" \
   quay.io/biocontainers/cs-tagger:0.3.0--h0feb368_0 cs-tagger --help
+# Podman (drop-in for Docker)
+podman run --rm -v "$PWD:$PWD" -w "$PWD" \
+  quay.io/biocontainers/cs-tagger:0.3.0--h0feb368_0 cs-tagger --help
 
 # Singularity / Apptainer
 singularity exec docker://quay.io/biocontainers/cs-tagger:0.3.0--h0feb368_0 cs-tagger --help
