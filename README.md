@@ -34,6 +34,21 @@ cargo build --release
 
 The binary is at `target/release/cs-tagger`.
 
+### Biocontainers
+
+Prebuilt images auto-built from the Bioconda package (no Rust/C toolchain needed):
+
+```bash
+# Docker
+docker run --rm -v "$PWD:$PWD" -w "$PWD" \
+  quay.io/biocontainers/cs-tagger:0.3.0--h0feb368_0 cs-tagger --help
+
+# Singularity / Apptainer
+singularity exec docker://quay.io/biocontainers/cs-tagger:0.3.0--h0feb368_0 cs-tagger --help
+```
+
+See all tags at [quay.io/biocontainers/cs-tagger](https://quay.io/repository/biocontainers/cs-tagger).
+
 ## Usage
 
 ```bash
