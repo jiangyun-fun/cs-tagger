@@ -1,0 +1,27 @@
+---
+title: "requirements audit — cs-tagger"
+author: "Yun Jiang"
+---
+
+## Split cs tag generation into a single rule with cs-tagger; harden cs-tagger strictness
+
+```
+level: high
+date: 2026-10-12
+cross-repo: de_novo_assembly_0921, cs-tagger
+```
+
+### description
+
+Cross-repo mirror: the requirement was made in de_novo_assembly_0921; the primary entry (full description, result, change) lives in that repo's docs/misc/requirements_audit.qmd. This repo's part: adopt the strict cs definition in the failure paths — error instead of silently truncating or dropping tokens.
+
+### result
+
+1. Refactored generate_cs_tag: bounds overruns (M/=/X, X, Ins, Del) now error naming the record and op; the previous `break`-truncation emitted a cs that silently disagreed with the CIGAR.
+2. Refactored RefSkip: N ops shorter than 4 (or overrunning the reference) now error; the previous guard dropped the ~ intron token silently.
+3. Added 5 unit tests; 24/24 pass. The strict build reproduces the de_novo normalizer's cs tags byte-identically (56/56 mapped records — in-bounds input is unaffected).
+
+### change
+
+Files updated: src/main.rs (strictness + tests).
+Git: fix commit on `main`; no push. Packages: none. Environments: none.

@@ -346,6 +346,7 @@ fn generate_cs_tag(
 
     let query_bytes = query_seq.as_bytes();
     let ref_bytes = ref_seq.as_bytes();
+    let qname = String::from_utf8_lossy(record.qname()).into_owned();
 
     for cigar_op in cigar.iter() {
         match cigar_op {
@@ -353,11 +354,19 @@ fn generate_cs_tag(
                 let len = *len as usize;
                 let mut identical_len: u32 = 0;
 
-                for i in 0..len {
-                    if query_pos + i >= query_bytes.len() || ref_pos + i >= ref_bytes.len() {
-                        break;
-                    }
+                if query_pos + len > query_bytes.len() || ref_pos + len > ref_bytes.len() {
+                    return Err(format!(
+                        "record '{qname}': M/=/X CIGAR op of length {len} at query offset \
+                         {query_pos} / reference offset {ref_pos} overruns the query sequence \
+                         (len {}) or the reference (len {}); the cs tag would disagree with \
+                         the CIGAR — refusing to truncate silently",
+                        query_bytes.len(),
+                        ref_bytes.len()
+                    )
+                    .into());
+                }
 
+                for i in 0..len {
                     let query_base = query_bytes[query_pos + i];
                     let ref_base = ref_bytes[ref_pos + i];
 
@@ -381,11 +390,18 @@ fn generate_cs_tag(
             }
             bam::record::Cigar::Diff(len) => {
                 let len = *len as usize;
+                if query_pos + len > query_bytes.len() || ref_pos + len > ref_bytes.len() {
+                    return Err(format!(
+                        "record '{qname}': X CIGAR op of length {len} at query offset \
+                         {query_pos} / reference offset {ref_pos} overruns the query sequence \
+                         (len {}) or the reference (len {}); the cs tag would disagree with \
+                         the CIGAR — refusing to truncate silently",
+                        query_bytes.len(),
+                        ref_bytes.len()
+                    )
+                    .into());
+                }
                 for i in 0..len {
-                    if query_pos + i >= query_bytes.len() || ref_pos + i >= ref_bytes.len() {
-                        break;
-                    }
-
                     let query_base = query_bytes[query_pos + i] as char;
                     let ref_base = ref_bytes[ref_pos + i] as char;
                     cs_ops.push(CsOp::Substitution(ref_base, query_base));
@@ -395,31 +411,64 @@ fn generate_cs_tag(
             }
             bam::record::Cigar::Ins(len) => {
                 let len = *len as usize;
-                let end_pos = std::cmp::min(query_pos + len, query_bytes.len());
+                if query_pos + len > query_bytes.len() {
+                    return Err(format!(
+                        "record '{qname}': insertion of length {len} at query offset \
+                         {query_pos} overruns the query sequence (len {}); the cs tag would \
+                         disagree with the CIGAR — refusing to truncate silently",
+                        query_bytes.len()
+                    )
+                    .into());
+                }
                 let inserted_seq =
-                    String::from_utf8_lossy(&query_bytes[query_pos..end_pos]).to_string();
+                    String::from_utf8_lossy(&query_bytes[query_pos..query_pos + len]).to_string();
                 cs_ops.push(CsOp::Insertion(inserted_seq));
                 query_pos += len;
             }
             bam::record::Cigar::Del(len) => {
                 let len = *len as usize;
-                let end_pos = std::cmp::min(ref_pos + len, ref_bytes.len());
-                let deleted_seq = String::from_utf8_lossy(&ref_bytes[ref_pos..end_pos]).to_string();
+                if ref_pos + len > ref_bytes.len() {
+                    return Err(format!(
+                        "record '{qname}': deletion of length {len} at reference offset \
+                         {ref_pos} overruns the reference sequence (len {}); the cs tag would \
+                         disagree with the CIGAR — refusing to truncate silently",
+                        ref_bytes.len()
+                    )
+                    .into());
+                }
+                let deleted_seq =
+                    String::from_utf8_lossy(&ref_bytes[ref_pos..ref_pos + len]).to_string();
                 cs_ops.push(CsOp::Deletion(deleted_seq));
                 ref_pos += len;
             }
             bam::record::Cigar::RefSkip(len) => {
                 let len = *len as usize;
                 let start_pos = ref_pos;
-                let end_pos = std::cmp::min(ref_pos + len, ref_bytes.len());
+                let end_pos = ref_pos + len;
 
-                if len >= 4 && start_pos + 2 <= ref_bytes.len() && end_pos >= 2 {
-                    let splice_start =
-                        String::from_utf8_lossy(&ref_bytes[start_pos..start_pos + 2]).to_string();
-                    let splice_end =
-                        String::from_utf8_lossy(&ref_bytes[end_pos - 2..end_pos]).to_string();
-                    cs_ops.push(CsOp::Intron(splice_start, len as u32, splice_end));
+                if len < 4 {
+                    return Err(format!(
+                        "record '{qname}': RefSkip (N) op of length {len} at reference offset \
+                         {start_pos} is too short for the ~ intron token (needs >= 4 to carry \
+                         both 2-base splice flanks); refusing to drop the token silently"
+                    )
+                    .into());
                 }
+                if end_pos > ref_bytes.len() {
+                    return Err(format!(
+                        "record '{qname}': RefSkip (N) op of length {len} at reference offset \
+                         {start_pos} overruns the reference sequence (len {}); the cs tag \
+                         would disagree with the CIGAR — refusing to truncate silently",
+                        ref_bytes.len()
+                    )
+                    .into());
+                }
+
+                let splice_start =
+                    String::from_utf8_lossy(&ref_bytes[start_pos..start_pos + 2]).to_string();
+                let splice_end =
+                    String::from_utf8_lossy(&ref_bytes[end_pos - 2..end_pos]).to_string();
+                cs_ops.push(CsOp::Intron(splice_start, len as u32, splice_end));
 
                 ref_pos += len;
             }
@@ -611,5 +660,97 @@ mod tests {
         assert!(seqs.is_empty());
 
         std::fs::remove_dir_all(&dir).ok();
+    }
+
+    // --- generate_cs_tag strictness (fail-fast, never silent truncation) ---
+
+    fn make_record(
+        qname: &[u8],
+        pos: i64,
+        cigar: bam::record::CigarString,
+        seq: &[u8],
+    ) -> bam::Record {
+        let mut record = bam::Record::new();
+        // Record::set asserts seq.len() == qual.len(); supply placeholder quals
+        let qual = vec![b'I'; seq.len()];
+        record.set(qname, Some(&cigar), seq, &qual);
+        record.set_tid(0);
+        record.set_pos(pos);
+        record
+    }
+
+    #[test]
+    fn generate_cs_tag_errors_on_query_overrun() {
+        // 8M over a 4-base query: the old code silently truncated to ":4"
+        let record = make_record(
+            b"t_q_over",
+            0,
+            bam::record::CigarString(vec![bam::record::Cigar::Match(8)]),
+            b"ACGT",
+        );
+        let err = generate_cs_tag(&record, "ACGT", "ACGTACGTACGT", 0).unwrap_err();
+        assert!(err.to_string().contains("overruns"), "got: {err}");
+        assert!(err.to_string().contains("t_q_over"), "got: {err}");
+    }
+
+    #[test]
+    fn generate_cs_tag_errors_on_ref_overrun() {
+        // 4M past a 3-base reference: also used to truncate silently
+        let record = make_record(
+            b"t_r_over",
+            2,
+            bam::record::CigarString(vec![bam::record::Cigar::Equal(4)]),
+            b"ACGT",
+        );
+        let err = generate_cs_tag(&record, "ACGT", "ACG", 2).unwrap_err();
+        assert!(err.to_string().contains("overruns"), "got: {err}");
+    }
+
+    #[test]
+    fn generate_cs_tag_errors_on_insertion_overrun() {
+        let record = make_record(
+            b"t_i_over",
+            0,
+            bam::record::CigarString(vec![
+                bam::record::Cigar::Equal(4),
+                bam::record::Cigar::Ins(3),
+            ]),
+            b"ACGT",
+        );
+        let err = generate_cs_tag(&record, "ACGT", "ACGTACGTACGT", 0).unwrap_err();
+        assert!(err.to_string().contains("insertion"), "got: {err}");
+    }
+
+    #[test]
+    fn generate_cs_tag_errors_on_short_refskip() {
+        // N of length 2 used to drop the ~ intron token silently
+        let record = make_record(
+            b"t_n2",
+            0,
+            bam::record::CigarString(vec![
+                bam::record::Cigar::Equal(4),
+                bam::record::Cigar::RefSkip(2),
+                bam::record::Cigar::Equal(4),
+            ]),
+            b"ACGTACGT",
+        );
+        let err = generate_cs_tag(&record, "ACGTACGT", "ACGTAGGGACGT", 0).unwrap_err();
+        assert!(err.to_string().contains("too short"), "got: {err}");
+    }
+
+    #[test]
+    fn generate_cs_tag_refskip_valid() {
+        let record = make_record(
+            b"t_n8",
+            0,
+            bam::record::CigarString(vec![
+                bam::record::Cigar::Equal(4),
+                bam::record::Cigar::RefSkip(8),
+                bam::record::Cigar::Equal(4),
+            ]),
+            b"ACGTACGT",
+        );
+        let cs = generate_cs_tag(&record, "ACGTACGT", "ACGTAAAATTTTACGT", 0).unwrap();
+        assert_eq!(cs, ":4~aa8tt:4");
     }
 }
