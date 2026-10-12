@@ -25,3 +25,26 @@ Cross-repo mirror: the requirement was made in de_novo_assembly_0921; the primar
 
 Files updated: src/main.rs (strictness + tests).
 Git: fix commit on `main`; no push. Packages: none. Environments: none.
+
+## Release cs-tagger v0.3.1
+
+```
+level: medium
+date: 2026-10-12
+cross-repo: de_novo_assembly_0921, cs-tagger, conda-recipe-cs-tagger, conda-recipes
+```
+
+### description
+
+Cross-repo mirror: the requirement was made in de_novo_assembly_0921; the primary entry lives there. This repo's part: cut the strict-cs release.
+
+### result
+
+1. Released - Cargo.toml 0.3.0 -> 0.3.1, main pushed (0bef365 + ef0e4d9), tag v0.3.1 pushed, GitHub release created with notes.
+2. Verified - cargo test 24/24 before tagging; release view confirms the tag.
+
+### change
+
+Files updated: Cargo.toml, Cargo.lock, docs/misc/requirements_audit.qmd (this entry).
+Git: ef0e4d9 + tag v0.3.1 pushed to origin; release https://github.com/jiangyun-fun/cs-tagger/releases/tag/v0.3.1
+Packages: none. Environments: none.
