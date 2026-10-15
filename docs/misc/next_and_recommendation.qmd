@@ -12,4 +12,3 @@ author: "Yun Jiang"
 ## recommendation
 
 1. M: For future bioconda bumps that need recipe changes, go straight to a master-targeting PR; PRs against bot branches cannot pass lint (merge-base ref missing in the runner).
-2. L: Push the three local docs commits (beb00a1, 613bbf4, 677aec4) next time main is pushed.
