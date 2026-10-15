@@ -91,3 +91,25 @@ After the diagnosis of bioconda PR 70178 (cs-tagger 0.3.1 bump failing on the st
 
 Files: none local (fix lives in the bioconda fork). External: fork branch `bump/cs_tagger` created (commit 1084129); PR https://github.com/bioconda/bioconda-recipes/pull/70316 opened; comment posted on PR 70178.
 Git: none in this repo beyond docs. Packages: none. Environments: none.
+
+## Explain PR 70316 CI failure and Mergify comment; recover the fix path
+
+```
+level: medium
+date: 2026-10-15
+```
+
+### description
+
+Explain why PR 70316's CI failed and what the Mergify checkbox comment means, then get the recipe-fix PR onto a path that can actually go green.
+
+### result
+
+1. Answered - the Lint job on PR 70316 crashed before linting any recipe: bioconda-utils runs `git merge-base origin/bump/cs_tagger HEAD` and the runner clone lacks that ref, so git exits 128. Deterministic for PRs whose base is not master; Linux/OSX tests were skipped for the same reason.
+2. Answered - the comment is Mergify's generic queue control: ticking the box (or `@mergifyio queue`) asks Mergify to merge the PR automatically once required checks pass; it is not an error and did nothing while Lint was red.
+3. Refactored - found in .mergify.yml that autobump auto-merge requires all commits authored by BiocondaBot and a PR younger than 3 days; #70178 has aged out either way, so the sub-PR route was a dead end. Retargeted PR 70316 to master (title/body rewritten as a standalone 0.3.1 update), pushed empty commit c64b962 to retrigger CI (re-run was denied: needs admin), and verified fresh Lint/ARM runs started. Background watch armed for the verdict.
+
+### change
+
+Files: none local beyond docs. External: PR 70316 retargeted to master + retitled; fork branch bumped to c64b962.
+Git: none in this repo beyond docs. Packages: none. Environments: none.
