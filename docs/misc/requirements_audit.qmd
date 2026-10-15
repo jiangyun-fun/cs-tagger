@@ -113,3 +113,25 @@ Explain why PR 70316's CI failed and what the Mergify checkbox comment means, th
 
 Files: none local beyond docs. External: PR 70316 retargeted to master + retitled; fork branch bumped to c64b962.
 Git: none in this repo beyond docs. Packages: none. Environments: none.
+
+## PR 70316 green CI: enter bioconda review queue
+
+```
+level: medium
+date: 2026-10-15
+```
+
+### description
+
+Background watch fired on the retargeted PR 70316; confirm the verdict and move the PR into bioconda's merge pipeline.
+
+### result
+
+1. Verified - all checks SUCCESS on master base: Lint, Linux Tests (the recipe builds and cs-tagger --help/--version pass), OSX-64, ARM; mergeStateStatus BLOCKED only awaits required review.
+2. Implemented - posted `@BiocondaBot please add label`; bot applied the `please review & merge` label, placing the PR in the review queue.
+3. Implemented - posted a supersession note on #70178 so a maintainer can close it once #70316 merges.
+
+### change
+
+Files: none local beyond docs. External: label `please review & merge` on PR 70316; supersession comment on PR 70178.
+Git: none in this repo beyond docs. Packages: none. Environments: none.
