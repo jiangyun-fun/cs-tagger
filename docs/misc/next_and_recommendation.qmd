@@ -1,0 +1,15 @@
+---
+title: "next and recommendation — cs-tagger"
+author: "Yun Jiang"
+---
+
+## next
+
+1. H: Await merge of bioconda-recipes PR #70316 into `bump/cs_tagger`, then confirm #70178 CI builds green and the 0.3.1 package lands on bioconda.
+2. M: Add the repo-release-review skill's recipe-coupling check: warn when a repo layout changes under an existing bioconda recipe before tagging.
+3. L: Add `permissions.push` gate to repo-release-review skill fork detection (igv-rs gap, still pending).
+
+## recommendation
+
+1. M: When pushing structural repo changes (layout, license paths) on a bioconda-packaged repo, check the recipe's build.sh for hardcoded paths in the same change.
+2. L: Consider making build.sh layout-agnostic only if the layout is expected to change again; the explicit path is otherwise clearer.

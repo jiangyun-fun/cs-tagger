@@ -48,3 +48,46 @@ Cross-repo mirror: the requirement was made in de_novo_assembly_0921; the primar
 Files updated: Cargo.toml, Cargo.lock, docs/misc/requirements_audit.qmd (this entry).
 Git: ef0e4d9 + tag v0.3.1 pushed to origin; release https://github.com/jiangyun-fun/cs-tagger/releases/tag/v0.3.1
 Packages: none. Environments: none.
+
+## Diagnose bioconda PR 70178 CI failure (cs-tagger 0.3.1 bump)
+
+```
+level: medium
+date: 2026-10-15
+```
+
+### description
+
+Debug why the BiocondaBot autobump PR updating the cs-tagger conda recipe from 0.3.0 to 0.3.1 fails CI, and state what the fix is.
+
+### result
+
+1. Answered - the Linux Tests build fails at build.sh line 14 (`cd cs-tagger`): the flatten-to-root restructure landed between tags v0.3.0 and v0.3.1, so the v0.3.1 source tarball no longer contains a nested `cs-tagger/` directory; conda_build.sh exits 1 under errexit.
+2. Answered - two more old-layout paths must be fixed in the same pass: build.sh writes THIRDPARTY.yml to `${SRC_DIR}/cs-tagger/THIRDPARTY.yml` and meta.yaml license_file lists `cs-tagger/THIRDPARTY.yml`.
+3. Answered - the vendoring workaround still applies: rust-htslib 1.0.1's Cargo.toml still carries the exact `features = ["bindgen"]` string the sed rewrites (verified from the 1.0.1 crate), and hts-sys stays 2.2.0.
+
+### change
+
+None (read-only diagnosis; evidence: PR 70178 job logs, tag trees, recipe files).
+
+## Submit bioconda recipe fix for PR 70178
+
+```
+level: medium
+date: 2026-10-15
+```
+
+### description
+
+After the diagnosis of bioconda PR 70178 (cs-tagger 0.3.1 bump failing on the stale nested-layout paths), prepare and submit the recipe fix.
+
+### result
+
+1. Implemented - built one commit (1084129) on top of the bot's commit bd3fc70 entirely via the GitHub git-data API in the fork: drops `cd cs-tagger`, writes THIRDPARTY.yml to `${SRC_DIR}`, and fixes the meta.yaml license_file entry.
+2. Implemented - pushed fork branch `jiangyun-fun:bump/cs_tagger`, opened bioconda-recipes PR #70316 targeting the bot's branch, and commented the diagnosis on #70178.
+3. Verified - compare API shows the fork branch diff is exactly the two intended files (build.sh +3/-6, meta.yaml +1/-1); merging needs a bioconda member (no push access on this side).
+
+### change
+
+Files: none local (fix lives in the bioconda fork). External: fork branch `bump/cs_tagger` created (commit 1084129); PR https://github.com/bioconda/bioconda-recipes/pull/70316 opened; comment posted on PR 70178.
+Git: none in this repo beyond docs. Packages: none. Environments: none.
